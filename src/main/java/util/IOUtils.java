@@ -2,6 +2,9 @@ package util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
 public class IOUtils {
     /**
@@ -16,5 +19,18 @@ public class IOUtils {
         char[] body = new char[contentLength];
         br.read(body, 0, contentLength);
         return String.copyValueOf(body);
+    }
+    
+    public static String fetch(InputStream in) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        
+        StringBuffer sb = new StringBuffer();
+        String line = null;
+        
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        
+        return sb.toString();
     }
 }
