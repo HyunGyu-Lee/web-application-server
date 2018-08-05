@@ -15,36 +15,55 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.IOUtils;
+import webserver.resource.ResourceAccessor;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
 
+    private ResourceAccessor resourceAccessor;
+    
     public RequestHandler(Socket connectionSocket) {
         this.connection = connectionSocket;
+        this.resourceAccessor = ResourceAccessor.getInstance();
     }
 
     public void run() {
         log.debug("New Client Connect! Connected IP : {}, Port : {}", connection.getInetAddress(),
                 connection.getPort());
-
-        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
+        
+        InputStream in = null;
+        OutputStream out = null;
+        
+        try  {
+            in = connection.getInputStream();
+            out = connection.getOutputStream(); 
+            
             BufferedReader reader = new BufferedReader(new InputStreamReader(in, Charset.forName("utf-8")));
-            HttpRequest currentRequest = parseRequest(reader);
-            byte[] body = "Hello World".getBytes();
+            HttpRequest currentRequest = HttpMessageParser.parseHttpMessage(reader);
             
-            log.debug("{}", currentRequest);
+            byte[] body = null;
             
-            File file = new File("src/main/webapp" + currentRequest.getRequestUri());
+            File resource = resourceAccessor.getResource(currentRequest.getRequestUri());
             
-            
-            
-            if (file.exists()) {
-                body = IOUtils.fetch(new FileInputStream(file)).getBytes();
-            } else {
-                // TODO 404오류 RESPONSE
+            if (resource == null) {
+                Object result = null;
+                
+                try {
+                    result = resourceAccessor.invokeCustomAction(currentRequest);
+                } catch (Exception e) {
+                    // 404 처리
+                }
+                
+                if (result == null) {
+                    return;
+                } else {
+                    resource = resourceAccessor.getResource(result.toString());
+                }
             }
+            
+            body = IOUtils.fetch(new FileInputStream(resource)).getBytes();
             
             DataOutputStream dos = new DataOutputStream(out);
             
@@ -52,25 +71,10 @@ public class RequestHandler extends Thread {
             responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
+        } finally {
+            IOUtils.closeQuietly(in);
+            IOUtils.closeQuietly(out);
         }
-    }
-
-    private HttpRequest parseRequest(BufferedReader reader) throws IOException {
-        HttpRequest currentRequest = new HttpRequest();
-        
-        String line = reader.readLine();
-        
-        String[] lineArr = line.split(" ");
-        
-        if (lineArr.length != 3) {
-            throw new IOException("Not HTTP Request");
-        }
-        
-        currentRequest.setMethod(lineArr[0]);
-        currentRequest.setRequestUri(lineArr[1]);
-        currentRequest.setHttpVersion(lineArr[2]);
-        
-        return currentRequest;
     }
     
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {

@@ -1,10 +1,10 @@
 package util;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 
 public class IOUtils {
     /**
@@ -33,4 +33,16 @@ public class IOUtils {
         
         return sb.toString();
     }
+    
+    public static void closeQuietly(Closeable stream) {
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                // 익셉션을 외부로 Throw하지 않지만, 오류 발생을 알리기 위해 오류 출력
+                e.printStackTrace();
+            }
+        }
+    }
+    
 }

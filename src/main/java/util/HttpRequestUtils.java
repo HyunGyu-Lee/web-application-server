@@ -1,5 +1,7 @@
 package util;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,8 +32,13 @@ public class HttpRequestUtils {
         if (Strings.isNullOrEmpty(values)) {
             return Maps.newHashMap();
         }
-
-        String[] tokens = values.split(separator);
+        
+        String[] tokens = null;
+        try {
+            tokens = URLDecoder.decode(values, "utf-8").split(separator);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         return Arrays.stream(tokens).map(t -> getKeyValue(t, "=")).filter(p -> p != null)
                 .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
     }
@@ -45,7 +52,7 @@ public class HttpRequestUtils {
         if (tokens.length != 2) {
             return null;
         }
-
+        
         return new Pair(tokens[0], tokens[1]);
     }
 
