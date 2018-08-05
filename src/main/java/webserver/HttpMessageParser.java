@@ -9,6 +9,7 @@ import java.io.IOException;
 import util.HttpRequestUtils;
 import util.IOUtils;
 import util.HttpRequestUtils.Pair;
+import webserver.http.HttpRequest;
 
 /**
  * HTTP Protocol Parser

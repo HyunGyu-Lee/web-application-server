@@ -4,16 +4,18 @@
 package webserver.resource;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import webserver.HttpRequest;
 import webserver.controller.Controller;
 import webserver.customaction.DefinitionParser;
 import webserver.customaction.action.Action;
+import webserver.http.HttpRequest;
 
 /**
  * WEB서버의 자원에 접근하는 클래스
@@ -31,11 +33,15 @@ public class ResourceAccessor {
     
     private Map<String, Action> actions;
     
+    private Tika tika;
+    
     public ResourceAccessor() {
         actions = new HashMap<>();
         setCustomActions(new Class<?>[] {
             Controller.class
         });
+        
+        tika = new Tika();
     }
     
     private void setCustomActions(Class<?>[] actionDefines) {
@@ -48,6 +54,14 @@ public class ResourceAccessor {
         }
     }
     
+    private String resolveResourcePath(String path) {
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        
+        return RESOURCE_PREFIX + File.separator + path;
+    }
+    
     public File getResource(String requestURI) {
         File fileResource = new File(resolveResourcePath(requestURI));
         
@@ -58,12 +72,8 @@ public class ResourceAccessor {
         return fileResource;
     }
     
-    public Object invokeCustomAction(HttpRequest request) throws Exception {
+    public Object invokeCustomAction(HttpRequest request) {
         Action action = actions.get(request.getActionUrl());
-
-        if (action == null) {
-            throw new Exception("404 Not Found");
-        }
 
         Object returnValue = null;
 
@@ -77,13 +87,19 @@ public class ResourceAccessor {
         return returnValue;
     }
     
-    private String resolveResourcePath(String path) {
-        if (path.startsWith("/")) {
-            path = path.substring(1);
+    public String detectMimeType(File resource) {
+        try {
+            return tika.detect(resource);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         
-        return RESOURCE_PREFIX + File.separator + path;
+        return "";
     }
+    
+    public boolean containsAction(String actionUrl) {
+        return actions.containsKey(actionUrl);
+    } 
     
     public static ResourceAccessor getInstance(Class<?>...customActions) {
         return Singleton.instance;
@@ -99,6 +115,6 @@ public class ResourceAccessor {
      */
     private static class Singleton {
         private static final ResourceAccessor instance = new ResourceAccessor();
-    } 
+    }
     
 }
