@@ -21,6 +21,8 @@ public class HttpResponseCode {
     static {
         responseCodeMap.put(200, "OK");
         
+        responseCodeMap.put(302, "Page Moved");
+        
         responseCodeMap.put(404, "Not Found");
         
         responseCodeMap.put(500, "Internal Server Error");

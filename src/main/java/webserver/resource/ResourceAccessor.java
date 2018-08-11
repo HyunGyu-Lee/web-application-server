@@ -16,6 +16,7 @@ import webserver.controller.Controller;
 import webserver.customaction.DefinitionParser;
 import webserver.customaction.action.Action;
 import webserver.http.HttpRequest;
+import webserver.http.HttpResponse;
 
 /**
  * WEB서버의 자원에 접근하는 클래스
@@ -72,13 +73,13 @@ public class ResourceAccessor {
         return fileResource;
     }
     
-    public Object invokeCustomAction(HttpRequest request) {
+    public Object invokeCustomAction(HttpRequest request, HttpResponse response) {
         Action action = actions.get(request.getActionUrl());
 
         Object returnValue = null;
 
         try {
-            returnValue = action.invokeAction(request);
+            returnValue = action.invokeAction(request, response);
         } catch (Exception e) {
             logger.debug("Error Occur execute custom action... " + e.getMessage());
             e.printStackTrace();

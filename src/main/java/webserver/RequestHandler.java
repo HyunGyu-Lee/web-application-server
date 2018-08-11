@@ -23,6 +23,8 @@ import webserver.resource.ResourceAccessor;
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
+    private static final String REDIRECT_PREFIX = "redirect:";
+    
     private Socket connection;
 
     private ResourceAccessor resourceAccessor;
@@ -51,10 +53,24 @@ public class RequestHandler extends Thread {
             
             // 현재 요청에 해당하는 CustomAction이 존재하는지 확인
             if (resourceAccessor.containsAction(currentRequest.getActionUrl())) {
-                Object returnValue = resourceAccessor.invokeCustomAction(currentRequest);
+                Object returnValue = resourceAccessor.invokeCustomAction(currentRequest, response);
                 
-                // TODO 지금은 CustomAction 응답에 해당하는 파일을 반환하지만 차후 ReturnValue Resolver를 추가해 다양한 응답을 할 수 있게 바꿀것 
-                processFileResource(response, resourceAccessor.getResource(returnValue.toString()));
+                // TODO 지금은 CustomAction 응답에 해당하는 파일을 반환하지만 차후 ReturnValue Resolver를 추가해 다양한 응답을 할 수 있게 바꿀것
+                if (returnValue instanceof String) {
+                    String responseLocator = returnValue.toString();
+                    
+                    // Redirect 체크
+                    if (responseLocator.startsWith(REDIRECT_PREFIX)) {
+                        responseLocator = responseLocator.substring(REDIRECT_PREFIX.length());
+                        
+                        response.addHeader("Location", responseLocator);
+                        response.setBody(new byte[] {});
+                        
+                        processResponse(dos, currentRequest, response);
+                    } else {
+                        processFileResource(response, resourceAccessor.getResource(responseLocator));
+                    }
+                }
             }
             // CustomAction이 없는 경우 File 응답
             else {
